@@ -5,6 +5,9 @@ from flask_migrate import Migrate, MigrateCommand
 from platform import app
 from exts import db
 from models import User, Question, Answer
+import logging
+
+logging.debug("root")
 
 manager = Manager(app)
 
