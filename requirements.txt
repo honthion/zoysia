@@ -40,3 +40,4 @@ webassets==0.12.1
 Werkzeug==0.12.2
 Whoosh==2.7.4
 WTForms==2.1
+psutil

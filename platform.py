@@ -13,6 +13,7 @@ import os
 import re
 import json
 from models import *
+from gnucash_data.models import *
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -42,7 +43,7 @@ def verify_password(name_or_token, password):
     return True
 
 
-@app.route('/api/login', methods=['POST','GET'])
+@app.route('/api/login', methods=['POST', 'GET'])
 @auth.login_required
 def get_auth_token():
     token = g.admin.generate_auth_token()
@@ -161,6 +162,20 @@ def getdrawLineChart():
                 else:
                     pass
     return jsonify({'code': 200, 'profess_value': profess_value, 'grade_value': grade_value, 'grade_data': grade_data})
+
+
+@auth.login_required
+@app.route('/api/index', methods=['GET'])
+def index(request):
+    accounts = [Account.from_path(path) for path in app.config[''].ACCOUNTS_LIST]
+
+    all_accounts = Account.get_all()
+    all_accounts.sort(key=lambda a: a.path)
+
+    return jsonify({'code': 200,
+                    'accounts': accounts,
+                    'all_accounts': all_accounts,
+                    'showing_index': True, })
 
 
 @auth.error_handler
