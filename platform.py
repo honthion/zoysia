@@ -13,6 +13,7 @@ import os
 import re
 import json
 from models import *
+import gnucash_data.account as account
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -42,7 +43,7 @@ def verify_password(name_or_token, password):
     return True
 
 
-@app.route('/api/login', methods=['POST','GET'])
+@app.route('/api/login', methods=['POST', 'GET'])
 @auth.login_required
 def get_auth_token():
     token = g.admin.generate_auth_token()
@@ -163,17 +164,31 @@ def getdrawLineChart():
     return jsonify({'code': 200, 'profess_value': profess_value, 'grade_value': grade_value, 'grade_data': grade_data})
 
 
+# 获取当前储蓄金额
+# 获取五大基本类型的当前balance
+
+
+
+# @auth.login_required
+@app.route('/api/index', methods=['GET'])
+def index():
+    accounts = account.all_account_map()
+    return jsonify({'code': 200,
+                    'accounts': accounts,
+                    'showing_index': True, })
+
+
 @auth.error_handler
 def unauthorized():
     return make_response(jsonify({'error': 'Unauthorized access'}), 401)
 
 
-@app.route('/')
-def index():
-    context = {
-        'questions': Question.query.order_by('-create_time').all()
-    }
-    return render_template('index.html', **context)
+# @app.route('/')
+# def index():
+#     context = {
+#         'questions': Question.query.order_by('-create_time').all()
+#     }
+#     return render_template('index.html', **context)
 
 
 @app.route('/login/', methods=['GET', 'POST'])
