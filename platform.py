@@ -168,14 +168,27 @@ def getdrawLineChart():
 # 获取五大基本类型的当前balance
 
 
-
-# @auth.login_required
+@auth.login_required
 @app.route('/api/index', methods=['GET'])
 def index():
-    accounts = account.all_account_map()
+    dic_5, dic_target = account.get_index_page_data()
     return jsonify({'code': 200,
-                    'accounts': accounts,
+                    'accounts': dic_5,
+                    'dic_target': dic_target,
                     'showing_index': True, })
+
+
+# 获取account 详情
+# @auth.login_required
+@app.route('/api/account/<account_guid>/', methods=['GET'])
+def account_info(account_guid):
+    page_num = request.args.get('page_num', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    account_info, total_size, txes = account.get_guid_info(guid=account_guid, page_num=page_num, page_size=page_size)
+    return jsonify({'code': 200,
+                    'account_info': account_info,
+                    'total_size': int(total_size),
+                    'list': txes, })
 
 
 @auth.error_handler
