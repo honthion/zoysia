@@ -5,9 +5,13 @@ from flask_migrate import Migrate, MigrateCommand
 from platform import app
 from exts import db
 from models import User, Question, Answer
+import sys
 import logging
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 logging.debug("root")
+
 
 manager = Manager(app)
 

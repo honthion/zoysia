@@ -12,8 +12,12 @@ import config
 import os
 import re
 import json
+import copy
 from models import *
 import gnucash_data.account as account
+import logging
+from flask.json import JSONEncoder
+from datetime import date
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -27,6 +31,23 @@ CSRF_ENABLED = True
 app.debug = True
 app.config.from_object(config)
 db.init_app(app)
+
+
+# 自定义接送编码器
+class CustomJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        try:
+            if isinstance(obj, datetime):
+                return obj.isoformat()
+            iterable = iter(obj)
+        except TypeError:
+            pass
+        else:
+            return list(iterable)
+        return JSONEncoder.default(self, obj)
+
+
+app.json_encoder = CustomJSONEncoder
 
 
 @auth.verify_password
@@ -43,11 +64,27 @@ def verify_password(name_or_token, password):
     return True
 
 
-@app.route('/api/login', methods=['POST', 'GET'])
+# 登陆
+@app.route('/authorizations', methods=['POST'])
 @auth.login_required
 def get_auth_token():
     token = g.admin.generate_auth_token()
     return jsonify({'code': 200, 'msg': "登录成功", 'token': token.decode('ascii'), 'name': g.admin.name})
+
+
+# 登陆
+@app.route('/api/login', methods=['POST'])
+@auth.login_required
+def get_auth_token_():
+    token = g.admin.generate_auth_token()
+    return jsonify({'code': 200, 'msg': "登录成功", 'token': token.decode('ascii'), 'name': g.admin.name})
+
+
+# 获取用户信息
+@app.route('/user', methods=['GET'])
+@auth.login_required
+def get_user():
+    return jsonify({'code': 200, 'msg': "获取用户成功", 'type': "Organization", 'name': g.admin.name})
 
 
 @app.route('/api/setpwd', methods=['POST'])
@@ -121,74 +158,52 @@ def bathremove_user():
         return jsonify({'code': 500, 'msg': "未知错误"})
 
 
-@app.route('/api/getdrawPieChart', methods=['GET'])
-@auth.login_required
-def getdrawPieChart():
-    query = db.session.query
-    Infos = query(JoinInfos)
-    total = Infos.count()
-    data_value = [0, 0, 0, 0, 0, 0, 0]  # 和下面组别一一对应
-    group_value = ['视觉', '视频', '前端', '办公', '后端', '运营', '移动']
-    for info in Infos:
-        for num in range(0, 7):
-            if group_value[num] in info.group:
-                data_value[num] += 1
-            else:
-                pass
-    return jsonify({'code': 200, 'value': data_value, 'total': total})
-
-
-@app.route('/api/getdrawLineChart', methods=['GET'])
-@auth.login_required
-def getdrawLineChart():
-    grade_value = []  # 年级汇总
-    profess_value = []  # 学院汇总
-    grade_data = {}  # 年级各学院字典
-    Infos = JoinInfos.query.all()
-    for info in Infos:
-        if info.grade not in grade_value:
-            grade_value.append(info.grade)
-            grade_data[info.grade] = []
-        if info.profess not in profess_value:
-            profess_value.append(info.profess)
-    for grade in grade_value:
-        for profess in profess_value:
-            grade_data[grade].append(0)
-    for info in Infos:
-        for grade in grade_value:
-            for profess_local_num in range(0, len(profess_value)):
-                if info.profess == profess_value[profess_local_num] and info.grade == grade:
-                    grade_data[grade][profess_local_num] += 1
-                else:
-                    pass
-    return jsonify({'code': 200, 'profess_value': profess_value, 'grade_value': grade_value, 'grade_data': grade_data})
-
-
 # 获取当前储蓄金额
 # 获取五大基本类型的当前balance
-
-
 @auth.login_required
-@app.route('/api/index', methods=['GET'])
+@app.route('/index', methods=['GET'])
 def index():
-    dic_5, dic_target = account.get_index_page_data()
+    res = account.get_index_page_data()
     return jsonify({'code': 200,
-                    'accounts': dic_5,
-                    'dic_target': dic_target,
+                    'data': res,
+                    'vision': {'name': "0.0.1", "body": {}},
                     'showing_index': True, })
+
+
+# 获取tx 列表
+@auth.login_required
+@app.route('/<account_guid>/transactions', methods=['GET'])
+def account_tx(account_guid):
+    query_string = request.args.get('query_string', '')
+    page_num = request.args.get('page_num', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    total_count, tx_list = account.get_guid_tx_list(guid=account_guid, query_string=query_string,
+                                                    page_num=page_num, page_size=page_size)
+    return jsonify({'code': 200,
+                    'total_count': int(total_count),
+                    'list': tx_list, })
+
+
+# 获取子Account
+@auth.login_required
+@app.route('/<account_guid>/children', methods=['GET'])
+def account_children(account_guid):
+    ret = account.get_children(guid=account_guid)
+    return jsonify({'code': 200,
+                    'data': ret, })
 
 
 # 获取account 详情
 # @auth.login_required
-@app.route('/api/account/<account_guid>/', methods=['GET'])
-def account_info(account_guid):
-    page_num = request.args.get('page_num', 1, type=int)
-    page_size = request.args.get('page_size', 10, type=int)
-    account_info, total_size, txes = account.get_guid_info(guid=account_guid, page_num=page_num, page_size=page_size)
-    return jsonify({'code': 200,
-                    'account_info': account_info,
-                    'total_size': int(total_size),
-                    'list': txes, })
+# @app.route('/api/account/<account_guid>/', methods=['GET'])
+# def account_info(account_guid):
+#     page_num = request.args.get('page_num', 1, type=int)
+#     page_size = request.args.get('page_size', 10, type=int)
+#     account_info, total_size, txes = account.get_guid_info(guid=account_guid, page_num=page_num, page_size=page_size)
+#     return jsonify({'code': 200,
+#                     'account_info': account_info,
+#                     'total_size': int(total_size),
+#                     'list': txes, })
 
 
 @auth.error_handler
@@ -196,117 +211,119 @@ def unauthorized():
     return make_response(jsonify({'error': 'Unauthorized access'}), 401)
 
 
-# @app.route('/')
-# def index():
-#     context = {
-#         'questions': Question.query.order_by('-create_time').all()
-#     }
-#     return render_template('index.html', **context)
-
-
-@app.route('/login/', methods=['GET', 'POST'])
-def login():
-    if request.method == 'GET':
-        return render_template('login.html')
-    else:
-        telephone = request.form.get('telephone')
-        password = request.form.get('password')
-        user = User.query.filter(User.telephone == telephone, User.password ==
-                                 password).first()
-        if user:
-            session['user_id'] = user.id
-            # 如果想在31天内都不需要登录
-            session.permanent = True
-            return redirect(url_for('index'))
-        else:
-            return u'手机号码或者密码错误，请确认好在登录'
-
-
-@app.route('/regist/', methods=['GET', 'POST'])
-def regist():
-    if request.method == 'GET':
-        return render_template('regist.html')
-    else:
-        telephone = request.form.get('telephone')
-        username = request.form.get('username')
-        password1 = request.form.get('password1')
-        password2 = request.form.get('password2')
-
-        # 手机号码验证，如果被注册了就不能用了
-        user = User.query.filter(User.telephone == telephone).first()
-        if user:
-            return u'该手机号码被注册，请更换手机'
-        else:
-            # password1 要和password2相等才可以
-            if password1 != password2:
-                return u'两次密码不相等，请核实后再填写'
-            else:
-                user = User(telephone=telephone, username=username, password=password1)
-                db.session.add(user)
-                db.session.commit()
-                # 如果注册成功，就让页面跳转到登录的页面
-                return redirect(url_for('login'))
-
-
-# 判断用户是否登录，只要我们从session中拿到数据就好了   注销函数
-@app.route('/logout/')
-def logout():
-    # session.pop('user_id')
-    # del session('user_id')
-    session.clear()
-    return redirect(url_for('login'))
-
-
-@app.route('/question/', methods=['GET', 'POST'])
-# @login_required
-def question():
-    if request.method == 'GET':
-        return render_template('question.html')
-    else:
-        title = request.form.get('title')
-        content = request.form.get('content')
-        question = Question(title=title, content=content)
-        user_id = session.get('user_id')
-        user = User.query.filter(User.id == user_id).first()
-        question.author = user
-        db.session.add(question)
-        db.session.commit()
-        return redirect(url_for('index'))
-
-
-@app.route('/detail/<question_id>/')
-def detail(question_id):
-    question_model = Question.query.filter(Question.id == question_id).first()
-    return render_template('detail.html', question=question_model)
-
-
-@app.route('/add_answer/', methods=['POST'])
-# @login_required
-def add_answer():
-    content = request.form.get('answer_content')
-    question_id = request.form.get('question_id')
-    answer = Answer(content=content)
-    user_id = session['user_id']
-    user = User.query.filter(User.id == user_id).first()
-    answer.author = user
-    question = Question.query.filter(Question.id == question_id).first()
-    answer.question = question
-    db.session.add(answer)
-    db.session.commit()
-    return redirect(url_for('detail', question_id=question_id))
-
-
-@app.route('/search/')
-def search():
-    q = request.args.get('q')
-    # title, content
-    # 或 查找方式（通过标题和内容来查找）
-    # questions = Question.query.filter(or_(Question.title.contains(q),
-    #                                     Question.content.constraints(q))).order_by('-create_time')
-    # 与 查找（只能通过标题来查找）
-    questions = Question.query.filter(Question.title.contains(q), Question.content.contains(q))
-    return render_template('index.html', questions=questions)
-
+#
+#
+# # @app.route('/')
+# # def index():
+# #     context = {
+# #         'questions': Question.query.order_by('-create_time').all()
+# #     }
+# #     return render_template('index.html', **context)
+#
+#
+# @app.route('/login/', methods=['GET', 'POST'])
+# def login():
+#     if request.method == 'GET':
+#         return render_template('login.html')
+#     else:
+#         telephone = request.form.get('telephone')
+#         password = request.form.get('password')
+#         user = User.query.filter(User.telephone == telephone, User.password ==
+#                                  password).first()
+#         if user:
+#             session['user_id'] = user.id
+#             # 如果想在31天内都不需要登录
+#             session.permanent = True
+#             return redirect(url_for('index'))
+#         else:
+#             return u'手机号码或者密码错误，请确认好在登录'
+#
+#
+# @app.route('/regist/', methods=['GET', 'POST'])
+# def regist():
+#     if request.method == 'GET':
+#         return render_template('regist.html')
+#     else:
+#         telephone = request.form.get('telephone')
+#         username = request.form.get('username')
+#         password1 = request.form.get('password1')
+#         password2 = request.form.get('password2')
+#
+#         # 手机号码验证，如果被注册了就不能用了
+#         user = User.query.filter(User.telephone == telephone).first()
+#         if user:
+#             return u'该手机号码被注册，请更换手机'
+#         else:
+#             # password1 要和password2相等才可以
+#             if password1 != password2:
+#                 return u'两次密码不相等，请核实后再填写'
+#             else:
+#                 user = User(telephone=telephone, username=username, password=password1)
+#                 db.session.add(user)
+#                 db.session.commit()
+#                 # 如果注册成功，就让页面跳转到登录的页面
+#                 return redirect(url_for('login'))
+#
+#
+# # 判断用户是否登录，只要我们从session中拿到数据就好了   注销函数
+# @app.route('/logout/')
+# def logout():
+#     # session.pop('user_id')
+#     # del session('user_id')
+#     session.clear()
+#     return redirect(url_for('login'))
+#
+#
+# @app.route('/question/', methods=['GET', 'POST'])
+# # @login_required
+# def question():
+#     if request.method == 'GET':
+#         return render_template('question.html')
+#     else:
+#         title = request.form.get('title')
+#         content = request.form.get('content')
+#         question = Question(title=title, content=content)
+#         user_id = session.get('user_id')
+#         user = User.query.filter(User.id == user_id).first()
+#         question.author = user
+#         db.session.add(question)
+#         db.session.commit()
+#         return redirect(url_for('index'))
+#
+#
+# @app.route('/detail/<question_id>/')
+# def detail(question_id):
+#     question_model = Question.query.filter(Question.id == question_id).first()
+#     return render_template('detail.html', question=question_model)
+#
+#
+# @app.route('/add_answer/', methods=['POST'])
+# # @login_required
+# def add_answer():
+#     content = request.form.get('answer_content')
+#     question_id = request.form.get('question_id')
+#     answer = Answer(content=content)
+#     user_id = session['user_id']
+#     user = User.query.filter(User.id == user_id).first()
+#     answer.author = user
+#     question = Question.query.filter(Question.id == question_id).first()
+#     answer.question = question
+#     db.session.add(answer)
+#     db.session.commit()
+#     return redirect(url_for('detail', question_id=question_id))
+#
+#
+# @app.route('/search/')
+# def search():
+#     q = request.args.get('q')
+#     # title, content
+#     # 或 查找方式（通过标题和内容来查找）
+#     # questions = Question.query.filter(or_(Question.title.contains(q),
+#     #                                     Question.content.constraints(q))).order_by('-create_time')
+#     # 与 查找（只能通过标题来查找）
+#     questions = Question.query.filter(Question.title.contains(q), Question.content.contains(q))
+#     return render_template('index.html', questions=questions)
+#
 
 # 钩子函数(注销)
 @app.context_processor
@@ -320,4 +337,11 @@ def my_context_processor():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    handler = logging.FileHandler('flask.log', encoding='UTF-8')
+    handler.setLevel(logging.DEBUG)
+    logging_format = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)s - %(message)s')
+    handler.setFormatter(logging_format)
+    app.logger.addHandler(handler)
+
+    app.run(debug=True, host='0.0.0.0', port=80)
