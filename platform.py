@@ -65,7 +65,7 @@ def verify_password(name_or_token, password):
 
 
 # 登陆
-@app.route('/authorizations', methods=['POST'])
+@app.route('/zoysia/authorizations', methods=['POST'])
 @auth.login_required
 def get_auth_token():
     token = g.admin.generate_auth_token()
@@ -161,7 +161,7 @@ def bathremove_user():
 # 获取当前储蓄金额
 # 获取五大基本类型的当前balance
 @auth.login_required
-@app.route('/index', methods=['GET'])
+@app.route('/zoysia/index', methods=['GET'])
 def index():
     res = account.get_index_page_data()
     return jsonify({'code': 200,
@@ -172,7 +172,7 @@ def index():
 
 # 获取tx 列表
 @auth.login_required
-@app.route('/<account_guid>/transactions', methods=['GET'])
+@app.route('/zoysia/<account_guid>/transactions', methods=['GET'])
 def account_tx(account_guid):
     query_string = request.args.get('query_string', '')
     page_num = request.args.get('page_num', 1, type=int)
@@ -186,7 +186,7 @@ def account_tx(account_guid):
 
 # 获取子Account
 @auth.login_required
-@app.route('/<account_guid>/children', methods=['GET'])
+@app.route('/zoysia/<account_guid>/children', methods=['GET'])
 def account_children(account_guid):
     ret = account.get_children(guid=account_guid)
     return jsonify({'code': 200,
