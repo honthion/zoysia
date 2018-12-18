@@ -1,20 +1,16 @@
 # coding:utf-8
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-import logging
-import config
 import copy
 import json
+
 from flask import Flask
-from flask.ext.cache import Cache
-import my_util
+from flask_cache import Cache
+from sqlalchemy import create_engine
+
+import config
 
 # 使用缓存
 app = Flask(__name__)
-# Check Configuring Flask-Cache section for more details
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})
-
-# engine = create_engine("mysql://mysql:123456@172.16.50.112/gnucash?charset=utf8", echo=True)
 engine = create_engine(config.guncash_db_url, echo=True)
 db = engine.connect()
 
@@ -23,7 +19,6 @@ db = engine.connect()
 @cache.cached(timeout=500, key_prefix='all_accounts')
 def all_accounts():
     # 查出所有的account
-    my_util.close_old_connections(db)
     ret_db = db.execute("""
         select  accounts.guid,accounts.name,accounts.account_type,accounts.parent_guid,accounts.commodity_guid  ,IFNULL(c1.sumx,0) sumx
         from gnucash.accounts  
@@ -67,6 +62,7 @@ class Tx:
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
                           sort_keys=True, indent=4)
+
     def __init__(self, guid, enter_date, description, quantity_num, name_path, account_guid, name):
         self.name = name
         self.guid = guid
@@ -80,7 +76,6 @@ class Tx:
 # 查询guid的交易列表
 #  61e9f96387044f19e6288d8f64892a9
 def get_guid_tx_list(guid, query_string, page_num=1, page_size=10):
-    my_util.close_old_connections(db)
     sql_str = """
             select  s3.* from (
             select s1.guid guid  ,s1.enter_date enter_date ,s1.description description ,splits.account_guid account_guid ,a1.name `name`,splits.quantity_num/splits.quantity_denom quantity_num

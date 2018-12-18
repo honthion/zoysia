@@ -1,6 +1,6 @@
 # encoding: utf-8
 
-from exts import db
+from config import db
 from flask import Flask
 from datetime import datetime
 from passlib.apps import custom_app_context
