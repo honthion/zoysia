@@ -7,6 +7,8 @@ import sys
 from flask_httpauth import HTTPBasicAuth
 from flask_sqlalchemy import SQLAlchemy
 
+# 项目名
+PROJECT_NAME = "zoysia"
 # 日志
 DEBUG = True
 logging.debug("root")

@@ -1,3 +1,4 @@
+# coding:utf-8
 import logging
 import os
 
@@ -10,17 +11,17 @@ from zoysia.my_utils.encoder_util import CustomJSONEncoder
 
 logger = logging.getLogger(__name__)
 
+PROJECT_NAME = config.PROJECT_NAME
+
 
 def create_app():
     app = Flask(__name__)
-    app.port = 5000
-    app.debug = config.DEBUG
     app.config.from_object(config)
     app.json_encoder = CustomJSONEncoder
     CORS(app, resources=r'/*')
     db = config.db
     app.url_map.strict_slashes = False
-    app.add_url_rule('/', 'home', home)
+    app.add_url_rule('/', PROJECT_NAME, home)
 
     register_blueprints(app)
 
@@ -33,9 +34,9 @@ def home():
     return dict(name='Flask REST API')
 
 
+# 注册蓝图
 def register_blueprints(app):
-    root_folder = 'zoysia'
-
+    root_folder = PROJECT_NAME
     for dir_name in os.listdir(root_folder):
         module_name = root_folder + '.' + dir_name + '.views'
         module_path = os.path.join(root_folder, dir_name, 'views.py')

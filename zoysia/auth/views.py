@@ -8,7 +8,7 @@ from config import auth
 from zoysia.auth.models import *
 
 # 创建蓝图
-app = Blueprint('user', __name__, url_prefix='/user')
+app = Blueprint('auth', __name__, url_prefix='/zoysia')
 
 
 # 登陆
