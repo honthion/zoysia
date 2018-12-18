@@ -1,15 +1,22 @@
 # encoding: utf-8
 
-from flask import g, jsonify, Blueprint
+import json
+import logging
+
+from flask import g, jsonify, Blueprint, Flask
 
 from config import auth
 
+log = logging.getLogger(__name__)
+app = Flask(__name__)
 # 创建蓝图
-app = Blueprint('user', __name__, url_prefix='/zoysia/user')
+api = Blueprint('user', __name__, url_prefix='/zoysia/user')
 
 
 # 获取用户信息
-@app.route('', methods=['GET'])
+@api.route('', methods=['GET'])
 @auth.login_required
 def get_user():
-    return jsonify({'code': 200, 'msg': "获取用户成功", 'type': "Organization", 'name': g.admin.name})
+    ret = {'code': 200, 'msg': u"获取用户成功", 'type': "Organization", 'name': g.admin.name}
+    log.info("get_user res:%s" % json.dumps(ret).decode('unicode-escape'))
+    return jsonify(ret)

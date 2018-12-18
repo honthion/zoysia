@@ -7,13 +7,14 @@ from flask_cors import CORS
 from werkzeug.utils import import_string
 
 import config
-from zoysia.my_utils.encoder_util import CustomJSONEncoder
+from common.my_utils.encoder_util import CustomJSONEncoder
 
 logger = logging.getLogger(__name__)
 
 PROJECT_NAME = config.PROJECT_NAME
 
 
+# 创建app
 def create_app():
     app = Flask(__name__)
     app.config.from_object(config)
@@ -43,6 +44,6 @@ def register_blueprints(app):
 
         if os.path.exists(module_path):
             module = import_string(module_name)
-            obj = getattr(module, 'app', None)
+            obj = getattr(module, 'api', None)
             if obj:
                 app.register_blueprint(obj)

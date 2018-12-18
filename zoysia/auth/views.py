@@ -8,11 +8,11 @@ from config import auth
 from zoysia.auth.models import *
 
 # 创建蓝图
-app = Blueprint('auth', __name__, url_prefix='/zoysia')
+api = Blueprint('auth', __name__, url_prefix='/zoysia/auth')
 
 
 # 登陆
-@app.route('/authorizations', methods=['POST'])
+@api.route('/authorizations', methods=['POST'])
 @auth.login_required
 def get_auth_token():
     token = g.admin.generate_auth_token()
@@ -20,22 +20,15 @@ def get_auth_token():
 
 
 # 登陆
-@app.route('/login', methods=['POST'])
+@api.route('/login', methods=['POST'])
 @auth.login_required
 def get_auth_token_():
     token = g.admin.generate_auth_token()
     return jsonify({'code': 200, 'msg': "登录成功", 'token': token.decode('ascii'), 'name': g.admin.name})
 
 
-# 获取用户信息
-@app.route('/user', methods=['GET'])
-@auth.login_required
-def get_user():
-    return jsonify({'code': 200, 'msg': "获取用户成功", 'type': "Organization", 'name': g.admin.name})
-
-
 # 钩子函数(注销)
-@app.context_processor
+@api.context_processor
 def my_context_processor():
     user_id = session.get('user_id')
     if user_id:

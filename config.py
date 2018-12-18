@@ -1,21 +1,14 @@
 # encoding: utf-8
 import ConfigParser
-import logging
 import os
 import sys
+from logging.config import dictConfig
 
 from flask_httpauth import HTTPBasicAuth
 from flask_sqlalchemy import SQLAlchemy
 
 # 项目名
 PROJECT_NAME = "zoysia"
-# 日志
-DEBUG = True
-logging.debug("root")
-handler = logging.FileHandler('flask.log', encoding='UTF-8')
-handler.setLevel(logging.DEBUG)
-handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)s - %(message)s'))
 # GNUCASH
 INDEX_ACCOUNTS_SHOW = u'储蓄存款:流动资产:资产'
 # 读取配置文件
@@ -27,14 +20,48 @@ if sys_name == 'nt':
 elif sys_name == 'posix':
     CONF_DIR = '/data/config/properties/zoysia/settings.ini'
 conf.read(CONF_DIR)
-db_user = conf.get('guncash', 'mysql_username')
-db_password = conf.get('guncash', 'mysql_password')
-db_host = conf.get('guncash', 'mysql_host')
-db_name = conf.get('guncash', 'mysql_dbname')
-guncash_db_url = "mysql://%s:%s@%s/%s?charset=utf8" % (db_user, db_password, db_host, db_name)
-SECRET_KEY = conf.get('global', 'SECRET_KEY')
+
+# 日志
+DEBUG = True
+dictConfig({
+    'version': 1,
+    'formatters': {
+        'default': {
+            'format': "[%(asctime)s] %(levelname)-8s [%(name)s:%(funcName)s:%(lineno)-3s:%(thread)d] %(message)s",
+        }},
+    'handlers': {
+        'null': {
+            'class': 'logging.NullHandler',
+        },
+        'logfile': {
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': conf.get('global', 'log_file_path'),
+            'when': 'midnight',
+            'interval': 1,
+            'backupCount': 100,
+            'formatter': 'default',
+            'encoding': 'UTF-8'
+        },
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'default',
+        }},
+    'root': {
+        'level': 'DEBUG',
+        'handlers': ['console', 'logfile']},
+    'loggers': {
+        'flask': {
+            'handlers': ['console'],
+            'propagate': False,
+            'level': 'WARN',
+        },
+    }
+})
+
 # 数据源
-SQLALCHEMY_DATABASE_URI = 'mysql://mysql:123456@172.16.50.112/flask_demo'
+guncash_db_url = conf.get('guncash', 'mysql_url')
+SECRET_KEY = conf.get('global', 'SECRET_KEY')
+SQLALCHEMY_DATABASE_URI = conf.get('global', 'mysql_url')
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 db = SQLAlchemy()
 # 其他
