@@ -2,7 +2,7 @@
 
 from flask.json import JSONEncoder
 
-from zoysia.auth.models import *
+from zoysia.models import *
 
 
 # 自定义接送编码器

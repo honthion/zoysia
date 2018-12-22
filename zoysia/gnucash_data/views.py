@@ -1,9 +1,11 @@
 # coding:utf-8
 from flask import (
-    Blueprint, request, jsonify
+    request
 )
 
+from zoysia.auth.views import *
 from . import account
+from . import income_and_expenditure as in_ex
 
 # 创建蓝图
 api = Blueprint('gnucash', __name__, url_prefix="/zoysia/gnucash")
@@ -12,6 +14,7 @@ api = Blueprint('gnucash', __name__, url_prefix="/zoysia/gnucash")
 # 获取当前储蓄金额
 # 获取五大基本类型的当前balance
 @api.route('/index', methods=['GET'])
+@auth.login_required
 def index():
     res = account.get_index_page_data()
     return jsonify({'code': 200,
@@ -21,7 +24,9 @@ def index():
 
 
 # 获取tx 列表
+
 @api.route('/<account_guid>/transactions', methods=['GET'])
+@auth.login_required
 def account_tx(account_guid):
     query_string = request.args.get('query_string', '')
     page_num = request.args.get('page_num', 1, type=int)
@@ -34,8 +39,18 @@ def account_tx(account_guid):
 
 
 # 获取子Account
+
 @api.route('/<account_guid>/children', methods=['GET'])
+@auth.login_required
 def account_children(account_guid):
     ret = account.get_children(guid=account_guid)
     return jsonify({'code': 200,
                     'data': ret, })
+
+
+# 添加进出账记录
+@api.route('/income-expenditures', methods=['POST'])
+@auth.login_required
+def add_income_expenditure():
+    ret = in_ex.add(request)
+    return jsonify({"code": ret.code, "data": ret.result, "msg": ret.msg})

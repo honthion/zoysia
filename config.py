@@ -4,9 +4,8 @@ import os
 import sys
 from logging.config import dictConfig
 
-from flask_httpauth import HTTPBasicAuth
-from flask_sqlalchemy import SQLAlchemy
 
+from flask_sqlalchemy import SQLAlchemy
 # 项目名
 PROJECT_NAME = "zoysia"
 # GNUCASH
@@ -65,6 +64,8 @@ SQLALCHEMY_DATABASE_URI = conf.get('global', 'mysql_url')
 SQLALCHEMY_TRACK_MODIFICATIONS = True
 db = SQLAlchemy()
 # 其他
-auth = HTTPBasicAuth()
+
 reload(sys)
 sys.setdefaultencoding('utf-8')
+
+
