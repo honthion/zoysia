@@ -17,3 +17,23 @@ def add(request):
     db.session.add(record)
     db.session.commit()
     return EnumResponse.success("")
+
+
+# 获取列表
+def get_pages(request):
+    page_num = request.args.get('page_num', 1, type=int)
+    page_size = request.args.get('page_size', 10, type=int)
+    query_string = request.args.get('query_string', '', type=str)
+    id = request.args.get('id', 0, type=int)
+    filters = {
+        RecordIncomeExpenditure.record_content.like("%" + query_string + "%"),
+    }
+    if id:
+        filters.add(RecordIncomeExpenditure.id == id)
+    pagination = RecordIncomeExpenditure.query.filter(*filters).order_by(RecordIncomeExpenditure.utime.desc()).paginate(
+        page=page_num,
+        per_page=page_size,
+        error_out=False)
+    total_count = pagination.total
+    ret = [item.to_dict() for item in pagination.items]
+    return EnumResponse.success({"list": ret, "total_count": total_count})

@@ -54,3 +54,11 @@ def account_children(account_guid):
 def add_income_expenditure():
     ret = in_ex.add(request)
     return jsonify({"code": ret.code, "data": ret.result, "msg": ret.msg})
+
+
+# 添加进出账记录
+@api.route('/income-expenditures', methods=['GET'])
+@auth.login_required
+def get_income_expenditure():
+    ret = in_ex.get_pages(request)
+    return jsonify({"code": ret.code, "data": ret.result, "msg": ret.msg})
