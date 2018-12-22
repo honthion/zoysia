@@ -56,9 +56,33 @@ def add_income_expenditure():
     return jsonify({"code": ret.code, "data": ret.result, "msg": ret.msg})
 
 
-# 添加进出账记录
+# 获取进出账记录
 @api.route('/income-expenditures', methods=['GET'])
 @auth.login_required
-def get_income_expenditure():
+def get_income_expenditures():
     ret = in_ex.get_pages(request)
+    return jsonify({"code": ret.code, "data": ret.result, "msg": ret.msg})
+
+
+# 获取单个进出账记录
+@api.route('/income-expenditure/<id>', methods=['GET'])
+@auth.login_required
+def get_income_expenditure(id):
+    ret = in_ex.get(id)
+    return jsonify({"code": ret.code, "data": ret.result, "msg": ret.msg})
+
+
+# 修改单个进出账记录
+@api.route('/income-expenditure/<id>', methods=['PUT'])
+@auth.login_required
+def update_income_expenditure(id):
+    ret = in_ex.update(id, request)
+    return jsonify({"code": ret.code, "data": ret.result, "msg": ret.msg})
+
+
+# 删除单个进出账记录
+@api.route('/income-expenditure/<id>', methods=['DELETE'])
+@auth.login_required
+def delete_income_expenditure(id):
+    ret = in_ex.delete(id)
     return jsonify({"code": ret.code, "data": ret.result, "msg": ret.msg})

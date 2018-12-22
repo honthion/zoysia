@@ -37,3 +37,42 @@ def get_pages(request):
     total_count = pagination.total
     ret = [item.to_dict() for item in pagination.items]
     return EnumResponse.success({"list": ret, "total_count": total_count})
+
+
+# 获取单个
+def get(id):
+    item = RecordIncomeExpenditure.query.filter(RecordIncomeExpenditure.id == id).first()
+    ret = [item.to_dict()]
+    return EnumResponse.success({"ret": ret})
+
+
+# 修改单个
+def update(id, request):
+    item = RecordIncomeExpenditure.query.filter(RecordIncomeExpenditure.id == id).first()
+    if item:
+        j_data = json.loads(request.data)
+        record_content = j_data['record_content']
+        if record_content:
+            item.record_content = record_content
+        if 'admin' in j_data and j_data['admin']:
+            remark = j_data['remark']
+            entry_account_status = j_data['entry_account_status']
+            reviewer = g.current_user.name,
+            reviewer_id = g.current_user.id,
+            item.remark = remark
+            item.entry_account_status = int(entry_account_status)
+            item.reviewer = reviewer
+            item.reviewer_id = reviewer_id
+            item.entry_account_time = datetime.now()
+        db.session.add(item)
+        db.session.commit()
+    return EnumResponse.success('')
+
+
+# 删除单个
+def delete(id):
+    item = RecordIncomeExpenditure.query.filter(RecordIncomeExpenditure.id == id).first()
+    if item:
+        db.session.delete(item)
+        db.session.commit()
+    return EnumResponse.success('')

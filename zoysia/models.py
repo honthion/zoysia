@@ -14,7 +14,7 @@ class User(db.Model):
     __tablename__ = 'sys_user'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     ctime = db.Column(db.DateTime, default=datetime.now(), comment='创建时间')
-    utime = db.Column(db.DateTime, default=datetime.now(), comment='修改时间')
+    utime = db.Column(db.DateTime, default=datetime.now(), onupdate=datetime.now(), comment='修改时间')
     name = db.Column(db.String(64), index=True, comment='姓名')
     password = db.Column(db.String(128), comment='密码')
     phone = db.Column(db.String(30), comment='电话号码')
@@ -72,7 +72,7 @@ class RecordIncomeExpenditure(db.Model):
     __tablename__ = 'record_income_expenditure'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     ctime = db.Column(db.DateTime, nullable=False, default=datetime.now(), comment='创建时间')
-    utime = db.Column(db.DateTime, nullable=False, default=datetime.now(), comment='更新时间')
+    utime = db.Column(db.DateTime, nullable=False, default=datetime.now(), onupdate=datetime.now, comment='更新时间')
     creator_id = db.Column(db.Integer, nullable=False, comment='创建者用户Id')  # 用户id
     creator = db.Column(db.String(64), nullable=False, comment='创建者')  # 用户名
     record_content = db.Column(db.Text(2000), nullable=False, comment='内容（创建者添加）')  # 内容
